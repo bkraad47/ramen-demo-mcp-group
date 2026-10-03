@@ -14,6 +14,11 @@ mcp/
 Rules: folder name == json `name` == file stem; json `type` must match its folder; `type` ∈ {tool, resource, prompt}.
 Secrets are referenced in code as `{{$group_name.secret_var}}` and resolved by the worker at call time.
 
+`mcp/env.yaml` (or `mcp/.env`) is the group's environment: flat `KEY: value` lines the worker exports to the Python
+runtime at load, with `{{$group.SECRET}}` references rendered from the group's secrets (Ramen 0.6.0). Tool code reads
+`os.environ["DEMO_MODE"]`; the worker's own cloud identity (its GCP service account / AWS role, with the permissions
+approved on the console) is what the code runs as, so cloud SDKs need no keys.
+
 ## Try it
 1. Deploy Ramen (see its README).
 2. Create a group, set its repo to `https://github.com/bkraad47/ramen-demo-mcp-group`.
