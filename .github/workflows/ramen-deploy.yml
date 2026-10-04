@@ -1,0 +1,92 @@
+# Deploys this group to a Ramen console when mcp/ changes on main, and waits for the deploy job.
+# Settings (repo → Settings → Secrets and variables → Actions):
+#   secret   RAMEN_API_KEY   rmn_ key, role Group Admin, groups [<this group>]           (required)
+#   variable RAMEN_URL       the console's address, the base URI with any path prefix     (required)
+#   variable RAMEN_GROUP     the group's name in Ramen (default demo)
+#   variable RAMEN_ENV       the environment to deploy (default prod)
+#   secret   RAMEN_CA_PEM    PEM of a self-signed console certificate                     (optional)
+# Without RAMEN_URL and RAMEN_API_KEY the job does nothing and says so.
+name: ramen-deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["mcp/**"]
+  workflow_dispatch:
+    inputs:
+      canary:
+        description: Roll a canary and smoke-test it before the stable pods
+        type: boolean
+        default: true
+
+permissions: {} # the console clones the repo itself; this job needs no GitHub token
+
+concurrency:
+  group: ramen-deploy-${{ vars.RAMEN_GROUP || 'demo' }}-${{ vars.RAMEN_ENV || 'prod' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAMEN_URL: ${{ vars.RAMEN_URL }}
+      RAMEN_API_KEY: ${{ secrets.RAMEN_API_KEY }}
+      RAMEN_CA_PEM: ${{ secrets.RAMEN_CA_PEM }}
+      RAMEN_GROUP: ${{ vars.RAMEN_GROUP || 'demo' }}
+      RAMEN_ENV: ${{ vars.RAMEN_ENV || 'prod' }}
+      CANARY: ${{ github.event_name != 'workflow_dispatch' || inputs.canary }}
+      DEPLOY_TIMEOUT_SECS: "900"
+    steps:
+      - name: Not configured
+        if: env.RAMEN_URL == '' || env.RAMEN_API_KEY == ''
+        run: echo "::notice::RAMEN_URL or RAMEN_API_KEY is not set; nothing deployed."
+
+      - name: Deploy and wait for the job
+        if: env.RAMEN_URL != '' && env.RAMEN_API_KEY != ''
+        run: |
+          set -euo pipefail
+          U="${RAMEN_URL%/}/api/v1"
+          TLS=()
+          if [ -n "${RAMEN_CA_PEM:-}" ]; then
+            CA="${RUNNER_TEMP:-/tmp}/ramen-ca.pem"; printf '%s\n' "$RAMEN_CA_PEM" > "$CA"; TLS=(--cacert "$CA")
+          fi
+          OUT="${RUNNER_TEMP:-/tmp}/ramen-out.json"
+          api() { # METHOD PATH [JSON] -> HTTP status (000: no answer); body in $OUT
+            rm -f "$OUT"
+            curl -sS ${TLS[@]+"${TLS[@]}"} --max-time 30 -o "$OUT" -w '%{http_code}' -X "$1" "$U$2" \
+              -H "X-Ramen-Api-Key: $RAMEN_API_KEY" -H 'Content-Type: application/json' ${3:+-d "$3"} || true
+          }
+
+          code=$(api POST "/groups/$RAMEN_GROUP/environments/$RAMEN_ENV/deploy" "{\"canary\": $CANARY}")
+          case "$code" in
+            202) ;;
+            000) echo "::error::no answer from $U (network, or TLS: set RAMEN_CA_PEM for a self-signed console)"; exit 1 ;;
+            401) echo "::error::401: the API key is wrong, revoked or missing"; exit 1 ;;
+            403) echo "::error::403: the key may not deploy $RAMEN_GROUP (role or groups): $(cat "$OUT")"; exit 1 ;;
+            *) echo "::error::deploy refused with HTTP $code: $(cat "$OUT" 2>/dev/null)"; exit 1 ;;
+          esac
+          JOB=$(jq -r .id "$OUT")
+          echo "deploy job $JOB: $RAMEN_GROUP/$RAMEN_ENV, canary=$CANARY"
+
+          deadline=$((SECONDS + DEPLOY_TIMEOUT_SECS))
+          while :; do
+            sleep 5
+            code=$(api GET "/jobs/$JOB")
+            status=unknown
+            if [ "$code" = 200 ]; then status=$(jq -r '.status // "unknown"' "$OUT" 2>/dev/null || echo unknown); fi
+            if [ "$code" = 404 ]; then
+              echo "::error::job $JOB is gone: jobs live in the console's memory, so it restarted. See the group page."
+              exit 1
+            fi
+            case "$status" in
+              ok)
+                jq -r '.log[]' "$OUT"; echo "deploy ok"; exit 0 ;;
+              error)
+                jq -r '.log[]' "$OUT"; echo "::error::deploy failed: $(jq -r '.error' "$OUT")"; exit 1 ;;
+            esac
+            # running, or a load-balancer blip (503, non-JSON) while the console restarts: keep polling
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::no result after ${DEPLOY_TIMEOUT_SECS}s (last HTTP $code, status $status)"; exit 1
+            fi
+          done

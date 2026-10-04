@@ -23,3 +23,9 @@ approved on the console) is what the code runs as, so cloud SDKs need no keys.
 1. Deploy Ramen (see its README).
 2. Create a group, set its repo to `https://github.com/bkraad47/ramen-demo-mcp-group`.
 3. Deploy, then call `demo_calculator_tool` with `{"var1": 2, "var2": 3, "func": "add"}` from any MCP client.
+
+## Deploy on push (GitHub Actions)
+`.github/workflows/ramen-deploy.yml` asks a Ramen console to deploy this group when `mcp/` changes on `main` and
+fails the run if the deploy fails. Set the repo variable `RAMEN_URL` and the secret `RAMEN_API_KEY` (an `rmn_` key,
+Group Admin of this group) to turn it on; without them it does nothing. Guide:
+[Deploy from GitHub Actions](https://bkraad47.github.io/ramen/wiki/deploy-github-actions/).
