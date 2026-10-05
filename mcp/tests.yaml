@@ -1,0 +1,23 @@
+# Golden cases (Ramen 0.7.0). The console runs every case against the canary worker before the stable track takes
+# the new code; one failing case aborts the deploy and names the case in the deploy log. `expect` is one of
+#   text_contains: "<substring of the result text>"
+#   subset: {<part of the tools/call result, matched field by field>}
+#   exact: {<the whole tools/call result>}
+# Arguments may reference a group secret as {{$demo.NAME}}; the console resolves it before the call.
+cases:
+  - name: add
+    tool: demo_calculator_tool
+    args: {var1: 40, var2: 2, func: add}
+    expect: {text_contains: "42"}
+  - name: divide by zero is a tool error, not a crash
+    tool: demo_calculator_tool
+    args: {var1: 1, var2: 0, func: divide}
+    expect: {subset: {isError: true}}
+  - name: word count
+    tool: word_count
+    args: {text: "ramen is a bowl of noodles"}
+    expect: {subset: {structuredContent: {words: 6, lines: 1}}}
+  - name: unit convert
+    tool: unit_convert
+    args: {value: 100, from_unit: celsius, to_unit: fahrenheit}
+    expect: {text_contains: "212"}

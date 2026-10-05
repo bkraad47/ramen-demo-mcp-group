@@ -1,13 +1,13 @@
 {
   "type": "tool",
   "name": "demo_calculator_tool",
-  "description": "Add, subtract, multiply or divide two numbers.",
+  "description": "Add, subtract, multiply or divide two numbers and return the result as a number. Pure and stateless: no side effects, no network, no auth beyond the group's key, no rate limit of its own. Division by zero returns a tool error (isError) with a one-sentence message instead of a value. Use it when an exact arithmetic result matters; for anything beyond one binary operation, chain calls or compute in the model.",
   "callable": "calculator_func",
   "input": {
-    "var1": {"type": "number", "description": "first operand"},
-    "var2": {"type": "number", "description": "second operand"},
-    "func": {"enum": ["add", "subtract", "multiply", "divide"], "description": "operation"}
+    "var1": {"type": "number", "description": "first operand (left-hand side); any finite number"},
+    "var2": {"type": "number", "description": "second operand (right-hand side); must be non-zero for divide"},
+    "func": {"enum": ["add", "subtract", "multiply", "divide"], "description": "operation to apply as var1 <func> var2"}
   },
-  "output": {"type": "number"},
+  "output": {"type": "number", "description": "var1 <func> var2"},
   "error": {"type": "string"}
 }

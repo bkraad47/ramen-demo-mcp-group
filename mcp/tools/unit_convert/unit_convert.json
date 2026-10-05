@@ -1,0 +1,13 @@
+{
+  "type": "tool",
+  "name": "unit_convert",
+  "description": "Convert a value between units of length (mm, cm, m, km, inch, foot, yard, mile), mass (mg, g, kg, tonne, ounce, pound) or temperature (celsius, fahrenheit, kelvin) and return the converted number. Pure and stateless, no side effects, no auth beyond the group's key. Units are matched case-insensitively by the names listed; an unknown unit or a conversion across families (length to mass) returns a tool error (isError) naming the accepted units. Use it for exact factor-based conversions; it does not handle currencies, dates or compound units such as km/h.",
+  "callable": "convert",
+  "input": {
+    "value": {"type": "number", "description": "the quantity to convert, in from_unit"},
+    "from_unit": {"type": "string", "description": "unit of value, e.g. km, pound, celsius"},
+    "to_unit": {"type": "string", "description": "unit of the result, same family as from_unit"}
+  },
+  "output": {"type": "number", "description": "value expressed in to_unit"},
+  "error": {"type": "string"}
+}
