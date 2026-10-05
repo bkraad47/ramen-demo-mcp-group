@@ -8,6 +8,7 @@ mcp/
   requirements.txt                       pip requirements for the worker
   tools/<name>/<name>.py                 callable code (utils/ is importable)
   tools/<name>/<name>.json               proto: type, name, callable, input, output, error
+  tests.yaml                             golden tools/call cases the console runs on the canary (optional)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
   prompts/<name>/<name>.json             + SKILL.md (agent-skills template) + settings.json
 ```
@@ -18,6 +19,23 @@ Secrets are referenced in code as `{{$group_name.secret_var}}` and resolved by t
 runtime at load, with `{{$group.SECRET}}` references rendered from the group's secrets (Ramen 0.6.0). Tool code reads
 `os.environ["DEMO_MODE"]`; the worker's own cloud identity (its GCP service account / AWS role, with the permissions
 approved on the console) is what the code runs as, so cloud SDKs need no keys.
+
+## What is in it (0.7.0)
+| Kind | Name | Does |
+|---|---|---|
+| tool | `demo_calculator_tool` | add, subtract, multiply, divide two numbers; divide by zero is a tool error |
+| tool | `word_count` | characters, words and lines of a text, returned as an object (`structuredContent`) |
+| tool | `unit_convert` | length, mass and temperature conversions; unknown or mixed units are a tool error |
+| resource | `demo_readme` | this README |
+| prompt | `get_calculation_prompt` | guides an agent to use the calculator |
+
+Every tool proto declares `output`; Ramen 0.7.0 publishes it as the MCP `outputSchema` and the worker validates the
+result against it. Descriptions say what the tool returns, what fails and when to use it, which is what tool-quality
+scorers (Glama's TDQS) and models read.
+
+`mcp/tests.yaml` holds **golden cases**: the console runs them against the canary before the stable workers take the
+new code, and a failing case aborts the deploy (Ramen 0.7.0). `VERSION` names the Ramen release this repo was last
+verified with; the repo is tagged with the same `v<version>`.
 
 ## Try it
 1. Deploy Ramen (see its README).
