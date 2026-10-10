@@ -1,0 +1,14 @@
+# Guardrails (Ramen 0.7.5, CONTRACTS §21.2). Opt-in per tool; the worker runs the rails inside the call:
+#   pre  = after argument validation, before the tool runs (the arguments, as JSON; secrets stay as {{$group.VAR}})
+#   post = after the output-schema check, before the result leaves (the result text or structuredContent)
+# engine: nemo (NVIDIA NeMo Guardrails, config dir below) | policy (your own mcp/guardrails/policy.py) | none
+# fail: closed (a hook error or timeout blocks the call) | open (the call proceeds, the worker logs guardrail_error)
+# These rails are deterministic: no model, no API key, no cost. Add `models:` to mcp/guardrails/config.yml and the
+# matching key to mcp/env.yaml to run LLM-backed rails such as NeMo's self-check flows.
+engine: nemo
+config: mcp/guardrails
+fail: closed
+timeout_s: 10
+tools:
+  word_count: {pre: true, post: true}
+  demo_calculator_tool: {pre: true}
