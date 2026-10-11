@@ -1,0 +1,9 @@
+# NeMo Guardrails config for the demo group: input and output flows only, no model.
+models: []
+rails:
+  input:
+    flows:
+      - block prompt injection
+  output:
+    flows:
+      - block leaked secrets

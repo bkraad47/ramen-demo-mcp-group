@@ -1,0 +1,14 @@
+define flow block prompt injection
+  $hit = execute looks_like_injection
+  if $hit
+    bot refuse to respond
+    stop
+
+define flow block leaked secrets
+  $hit = execute mentions_secret
+  if $hit
+    bot refuse to respond
+    stop
+
+define bot refuse to respond
+  "blocked by the demo group's guardrails"
