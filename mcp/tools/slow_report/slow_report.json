@@ -1,0 +1,12 @@
+{
+  "type": "tool",
+  "name": "slow_report",
+  "description": "Build a small demo report that takes `seconds` to finish, reporting progress once a second, and return a one-line summary. It exists to show long-running work: a client that declares the MCP tasks extension (io.modelcontextprotocol/tasks, 2026-07-28) gets a task id at once and polls tasks/get for the result; any other client simply waits for the answer. No side effects, no network, no auth beyond the group's key. `seconds` is capped at 30 and a negative value counts as 0. Use it to try tasks, progress and cancellation; it computes nothing useful.",
+  "callable": "report",
+  "task": true,
+  "input": {
+    "seconds": {"type": "integer", "description": "how long the report takes, in seconds; 0 answers at once, values above 30 are treated as 30"}
+  },
+  "output": {"type": "string", "description": "one line saying how long the report took"},
+  "error": {"type": "string"}
+}
