@@ -3,7 +3,10 @@
 #   text_contains: "<substring of the result text>"
 #   subset: {<part of the tools/call result, matched field by field>}
 #   exact: {<the whole tools/call result>}
+#   input_required: [<keys>]   (1.0.0) the tool's first answer must ask for exactly these inputs
 # Arguments may reference a group secret as {{$demo.NAME}}; the console resolves it before the call.
+# A case with `respond: {<key>: <answer>}` (1.0.0) is a two-step call: the console calls as an MCP 2026-07-28 client,
+# and when the tool asks for input it calls again with these answers; `expect` then applies to the final result.
 cases:
   - name: add
     tool: demo_calculator_tool
@@ -21,3 +24,21 @@ cases:
     tool: unit_convert
     args: {value: 100, from_unit: celsius, to_unit: fahrenheit}
     expect: {text_contains: "212"}
+  - name: confirm_delete_note asks before it deletes
+    tool: confirm_delete_note
+    args: {note: todo}
+    expect: {input_required: [confirm]}
+  - name: confirm_delete_note deletes when the user confirms
+    tool: confirm_delete_note
+    args: {note: todo}
+    respond: {confirm: {action: accept, content: {confirm: true}}}
+    expect: {text_contains: 'Deleted the note "todo"'}
+  - name: confirm_delete_note deletes nothing when the user declines
+    tool: confirm_delete_note
+    args: {note: todo}
+    respond: {confirm: {action: decline}}
+    expect: {subset: {isError: false, structuredContent: {result: 'Nothing was deleted: the note "todo" is still there.'}}}
+  - name: slow_report answers at once for zero seconds
+    tool: slow_report
+    args: {seconds: 0}
+    expect: {text_contains: "Report ready after 0 s"}

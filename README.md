@@ -7,7 +7,7 @@ A ready-to-connect **group repo** for [Ramen](https://github.com/bkraad47/ramen)
 mcp/
   requirements.txt                       pip requirements for the worker
   tools/<name>/<name>.py                 callable code (utils/ is importable)
-  tools/<name>/<name>.json               proto: type, name, callable, input, output, error
+  tools/<name>/<name>.json               proto: type, name, callable, input, output, error (+ "task": true)
   tests.yaml                             golden tools/call cases the console runs on the canary (optional)
   guardrails.yaml + guardrails/          per-tool pre/post rails: NeMo config or your own policy.py (optional, 0.7.5)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
@@ -21,12 +21,14 @@ runtime at load, with `{{$group.SECRET}}` references rendered from the group's s
 `os.environ["DEMO_MODE"]`; the worker's own cloud identity (its GCP service account / AWS role, with the permissions
 approved on the console) is what the code runs as, so cloud SDKs need no keys.
 
-## What is in it (0.7.5)
+## What is in it (1.0.0)
 | Kind | Name | Does |
 |---|---|---|
 | tool | `demo_calculator_tool` | add, subtract, multiply, divide two numbers; divide by zero is a tool error |
 | tool | `word_count` | characters, words and lines of a text, returned as an object (`structuredContent`) |
 | tool | `unit_convert` | length, mass and temperature conversions; unknown or mixed units are a tool error |
+| tool | `confirm_delete_note` | asks the user to confirm before deleting a demo note (MCP 2026-07-28 elicitation); declining is a normal result |
+| tool | `slow_report` | takes up to 30 s and reports progress; runs as a task for clients that support MCP tasks |
 | resource | `demo_readme` | this README |
 | prompt | `get_calculation_prompt` | guides an agent to use the calculator |
 
@@ -46,6 +48,25 @@ before the tool and the output rail on the result after the schema check; a bloc
 prompt-injection phrase in the input, the word "secret" in the output — so they cost nothing; add `models:` to
 `config.yml` and an API key to `mcp/env.yaml` for NeMo's LLM-backed self-check flows. `fail: closed` means a rail
 that errors or times out blocks the call. The golden cases in `mcp/tests.yaml` run through the rails too.
+
+## Asking the user, and long-running work (1.0.0, MCP 2026-07-28)
+Ramen 1.0.0 serves the 2026-07-28 revision of MCP next to 2025-06-18; the three older tools answer both exactly as before.
+Two tools show what the new revision adds:
+
+- **`confirm_delete_note`** asks before it acts. Its code raises `InputRequired` with a yes/no form
+  (`ramen_runtime.elicit`); the client gets `resultType: "input_required"`, shows the form to the user and calls again
+  with `inputResponses`. Confirming deletes the note from a fixed demo list; declining, cancelling or answering no
+  returns `Nothing was deleted: …` as a normal result (`isError: false`). Nothing is stored on the worker between the two
+  calls. A 2025-06-18 client is told, as a tool error, that the tool needs a newer client.
+- **`slow_report`** is marked `"task": true`. A client that declares the tasks extension
+  (`io.modelcontextprotocol/tasks`) gets a task id at once and polls `tasks/get`; it can `tasks/cancel`. Any other
+  client just waits for the answer. `seconds` is capped at 30. The code calls `ramen_runtime.progress(...)`, which
+  reaches clients that asked for progress.
+
+`mcp/tests.yaml` covers both paths of `confirm_delete_note`: a case with `respond:` answers the form for the console
+(confirm → deleted, decline → nothing deleted), and `expect: {input_required: [confirm]}` checks that the tool asks at
+all. `mcp/guardrails.yaml` puts the tool behind the input rail, which runs on the first call and again on the call that
+carries the user's answer, before the tool acts on it.
 
 ## Try it
 1. Deploy Ramen (see its README).

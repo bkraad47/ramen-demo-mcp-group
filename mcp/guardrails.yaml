@@ -12,3 +12,6 @@ timeout_s: 10
 tools:
   word_count: {pre: true, post: true}
   demo_calculator_tool: {pre: true}
+  # 1.0.0: pre runs on the first call AND on the call that carries the user's answer (the rail then sees the
+  # arguments plus "$inputResponses"), so an injected answer is stopped before the tool acts on it
+  confirm_delete_note: {pre: true}
