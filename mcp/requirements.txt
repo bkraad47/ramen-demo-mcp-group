@@ -1,2 +1,3 @@
 # Packages installed into the group's worker runtime at deploy time.
-# The demo tool uses only the standard library.
+# build-test: a real dependency so a deploy builds the group image (tests/cloud RAMEN_BUILD_REF).
+six==1.17.0
