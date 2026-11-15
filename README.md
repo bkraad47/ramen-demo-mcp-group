@@ -10,6 +10,7 @@ mcp/
   tools/<name>/<name>.json               proto: type, name, callable, input, output, error (+ "task": true)
   tests.yaml                             golden tools/call cases the console runs on the canary (optional)
   evals/promptfooconfig.yaml             promptfoo evals the console runs on the canary after the golden cases (optional, 1.0.0c)
+  skills/<name>/SKILL.md                 agent skills shipped with the group, scanned by SkillSpector on deploy (optional, 1.0.0c)
   guardrails.yaml + guardrails/          per-tool pre/post rails: NeMo config or your own policy.py (optional, 0.7.5)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
   prompts/<name>/<name>.json             + SKILL.md (agent-skills template) + settings.json
@@ -40,6 +41,13 @@ scorers (Glama's TDQS) and models read.
 `mcp/tests.yaml` holds **golden cases**: the console runs them against the canary before the stable workers take the
 new code, and a failing case aborts the deploy (Ramen 0.7.0). `VERSION` names the Ramen release this repo was last
 verified with; the repo is tagged with the same `v<version>`.
+
+## Skills and scans (1.0.0c)
+`mcp/skills/noodle-math/SKILL.md` is a small agent skill that uses the three tools by name. When the console runs
+[NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) (chart `skillspector.engine: skillspector`), every deploy
+scans `mcp/skills/*` plus a skill synthesized from the tools and prompts the zone serves, records the risk score on the
+deploy job and keeps the report on a page per zone; "Gate deploys on scans" on the group page turns a `DO_NOT_INSTALL`
+into a failed deploy. An optional `mcp/skillspector-baseline.yaml` suppresses findings you have reviewed.
 
 ## Guardrails (0.7.5)
 `mcp/guardrails.yaml` opts `word_count` (pre and post) and `demo_calculator_tool` (pre) into NeMo Guardrails, with the
