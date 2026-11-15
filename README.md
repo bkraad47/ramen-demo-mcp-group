@@ -9,6 +9,7 @@ mcp/
   tools/<name>/<name>.py                 callable code (utils/ is importable)
   tools/<name>/<name>.json               proto: type, name, callable, input, output, error (+ "task": true)
   tests.yaml                             golden tools/call cases the console runs on the canary (optional)
+  evals/promptfooconfig.yaml             promptfoo evals the console runs on the canary after the golden cases (optional, 1.0.0c)
   guardrails.yaml + guardrails/          per-tool pre/post rails: NeMo config or your own policy.py (optional, 0.7.5)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
   prompts/<name>/<name>.json             + SKILL.md (agent-skills template) + settings.json
