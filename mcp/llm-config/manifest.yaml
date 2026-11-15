@@ -1,0 +1,32 @@
+# Initial LLM client configs for this group (Ramen 1.0.0c Phase 3, CONTRACTS §31.0). Every person who signs in to
+# the group accepts this directory once per version; the bridge then writes each target on their machine.
+# `path`: `~`, `{group}`, `{zone}`, `{host}` are expanded. Fragments may use ${RAMEN_GROUP}, ${RAMEN_HOST},
+# ${RAMEN_USER}, ${RAMEN_OTLP_ENDPOINT}, ${RAMEN_OTLP_HEADERS}; the bridge fills them in at write time.
+version: 1
+description: How the demo group's LLM clients should use its tools — a policy hook, a deny rule, two lines of guidance.
+targets:
+  - client: claude-code
+    file: claude-code.settings.json
+    path: ~/.claude/settings.json
+    format: json
+    merge: deep          # Ramen's keys win, everything else in the file is left alone
+  - client: claude-code
+    file: CLAUDE.md
+    path: ~/.claude/CLAUDE.md
+    format: text
+    merge: block         # one `# ramen:<group>` … `# /ramen` block, replaced in place
+  - client: cursor
+    file: cursor.rules.mdc
+    path: ~/.cursor/rules/ramen-{group}.mdc
+    format: text
+    merge: replace       # the whole file is Ramen's
+  - client: codex
+    file: codex.config.toml
+    path: ~/.codex/config.toml
+    format: toml
+    merge: deep
+  - client: vscode
+    file: vscode.settings.json
+    path: ~/.config/Code/User/settings.json   # Linux; macOS keeps it under ~/Library/Application Support/Code/User
+    format: json
+    merge: deep

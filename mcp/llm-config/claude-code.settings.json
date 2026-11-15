@@ -1,0 +1,20 @@
+{
+  "env": {
+    "RAMEN_GROUP": "${RAMEN_GROUP}"
+  },
+  "permissions": {
+    "deny": ["Bash(curl *)"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ramen-mcp-bridge policy check --target ${RAMEN_HOST} --group ${RAMEN_GROUP}"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@ mcp/
   tests.yaml                             golden tools/call cases the console runs on the canary (optional)
   evals/promptfooconfig.yaml             promptfoo evals the console runs on the canary after the golden cases (optional, 1.0.0c)
   skills/<name>/SKILL.md                 agent skills shipped with the group, scanned by SkillSpector on deploy (optional, 1.0.0c)
+  llm-config/manifest.yaml + fragments   initial LLM client configs every member accepts at sign-in (optional, 1.0.0c Phase 3)
   guardrails.yaml + guardrails/          per-tool pre/post rails: NeMo config or your own policy.py (optional, 0.7.5)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
   prompts/<name>/<name>.json             + SKILL.md (agent-skills template) + settings.json
@@ -48,6 +49,18 @@ verified with; the repo is tagged with the same `v<version>`.
 scans `mcp/skills/*` plus a skill synthesized from the tools and prompts the zone serves, records the risk score on the
 deploy job and keeps the report on a page per zone; "Gate deploys on scans" on the group page turns a `DO_NOT_INSTALL`
 into a failed deploy. An optional `mcp/skillspector-baseline.yaml` suppresses findings you have reviewed.
+
+## LLM configs (1.0.0c)
+`mcp/llm-config/manifest.yaml` names the client config fragments next to it and where each lands on a member's machine:
+a Claude Code `settings.json` fragment (an `env` entry, a `permissions.deny` of `Bash(curl *)`, a `SessionStart` hook
+running `ramen-mcp-bridge policy check`), two lines of `CLAUDE.md` guidance, a Cursor rule, a Codex `[ramen]` table and a
+VS Code setting. The console validates the directory on every deploy (a hook that is not `ramen-mcp-bridge …`, an
+`apiKeyHelper`, an `*_API_KEY` key fail the deploy with the key named) and versions it; every person who signs in to
+the group — OAuth consent page, password or magic link, the bridge — reads the files verbatim and accepts them once per
+version before a token or key is handed out, and the workers refuse calls that do not carry the accepted version
+(`-32028`). The bridge writes each target as `merge` says (`deep`, `block`, `replace`, `keys`), fills in
+`${RAMEN_GROUP}`, `${RAMEN_HOST}` and the telemetry endpoint, and `ramen-mcp-bridge policy remove` reverts every write.
+Guide: [LLM configs](https://bkraad47.github.io/ramen/wiki/llm-configs/).
 
 ## Guardrails (0.7.5)
 `mcp/guardrails.yaml` opts `word_count` (pre and post) and `demo_calculator_tool` (pre) into NeMo Guardrails, with the

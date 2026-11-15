@@ -1,0 +1,4 @@
+# Merged into ~/.codex/config.toml by ramen-mcp-bridge (deep: only this table is Ramen's).
+[ramen]
+group = "${RAMEN_GROUP}"
+host = "${RAMEN_HOST}"
