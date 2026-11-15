@@ -3,7 +3,8 @@
 # against the canary after the golden cases of each zone, and records passed/failed/errors on the deploy job
 # (a warning by default; "Gate deploys on evals" on the group page makes a failure stop the deploy).
 #
-# Env Ramen injects into the run (nothing else is on the pod):
+# Env Ramen injects into the run (nothing else is on the pod). Ramen fills `{{env.RAMEN_*}}` in below before the run
+# (promptfoo renders env refs in prompts/vars but not in a provider's server.url/headers); provider keys stay env vars:
 #   RAMEN_MCP_URL   the canary's Streamable HTTP endpoint (in-cluster)      RAMEN_GROUP / RAMEN_ENV / RAMEN_ZONE
 #   RAMEN_MCP_KEY   the group key the golden cases use (bearer)
 #   ANTHROPIC_API_KEY, OPENAI_API_KEY (+ OPENAI_BASE_URL), AZURE_API_KEY + AZURE_API_HOST — only the providers a
