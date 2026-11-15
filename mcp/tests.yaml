@@ -42,3 +42,16 @@ cases:
     tool: slow_report
     args: {seconds: 0}
     expect: {text_contains: "Report ready after 0 s"}
+  # 1.0.0c Iris example (CONTRACTS §33.3)
+  - name: iris_describe counts 150 rows
+    tool: iris_describe
+    args: {}
+    expect: {subset: {structuredContent: {count: 150, columns: {sepal_length: {count: 150, mean: 5.8433}}}}}
+  - name: iris_outliers finds two sepal_width rows at z 2.5
+    tool: iris_outliers
+    args: {column: sepal_width, z: 2.5}
+    expect: {subset: {isError: false, structuredContent: {total: 2, truncated: false}}}
+  - name: iris_group_means has three species
+    tool: iris_group_means
+    args: {by: species}
+    expect: {subset: {structuredContent: {counts: {setosa: 50, versicolor: 50, virginica: 50}, groups: {setosa: {petal_width: 0.246}}}}}

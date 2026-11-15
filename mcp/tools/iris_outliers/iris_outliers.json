@@ -1,0 +1,38 @@
+{
+  "type": "tool",
+  "name": "iris_outliers",
+  "description": "List the Iris rows whose z-score on one numeric column exceeds z in absolute value (z-score = (value - column mean) / sample std, computed with pandas over all 150 rows). Returns the column, the threshold, how many rows qualified (total) and at most IRIS_MAX_ROWS of them (default 50; truncated is true when some were cut), each row with its 0-based index, the four measurements, species and its z-score rounded to 3 decimals. z must be positive: z 2.5 on sepal_width yields 2 rows, z 0 would list every row and is cut at the limit. Pure and stateless. A post guardrail refuses any result above 50 rows or whose cells are not numbers.",
+  "callable": "outliers",
+  "input": {
+    "column": {"enum": ["sepal_length", "sepal_width", "petal_length", "petal_width"], "description": "the numeric column to test"},
+    "z": {"type": "number", "description": "absolute z-score threshold; 2.5 is the usual choice"}
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "column": {"type": "string"},
+      "z": {"type": "number"},
+      "total": {"type": "integer", "description": "rows over the threshold before the limit"},
+      "limit": {"type": "integer", "description": "IRIS_MAX_ROWS, default 50"},
+      "truncated": {"type": "boolean"},
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "index": {"type": "integer"},
+            "sepal_length": {"type": "number"},
+            "sepal_width": {"type": "number"},
+            "petal_length": {"type": "number"},
+            "petal_width": {"type": "number"},
+            "species": {"type": "string"},
+            "z": {"type": "number"}
+          },
+          "required": ["index", "sepal_length", "sepal_width", "petal_length", "petal_width", "species", "z"]
+        }
+      }
+    },
+    "required": ["column", "z", "total", "limit", "truncated", "rows"]
+  },
+  "error": {"type": "string"}
+}

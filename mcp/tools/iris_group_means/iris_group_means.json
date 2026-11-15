@@ -1,0 +1,24 @@
+{
+  "type": "tool",
+  "name": "iris_group_means",
+  "description": "Mean of each numeric Iris column (sepal_length, sepal_width, petal_length, petal_width) per group, grouped by the `by` column (species: setosa, versicolor, virginica), rounded to 3 decimals, plus the row count per group. Computed with pandas from the CSV shipped with the group; pure, stateless, no side effects. The result carries an MCP App (iris_chart) that draws the means as an inline SVG bar chart in hosts that render apps; other clients get the JSON. Use it after iris_describe when the question is how the species differ.",
+  "callable": "group_means",
+  "ui": "iris_chart",
+  "input": {
+    "by": {"enum": ["species"], "description": "the column to group by; only species is categorical"}
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "by": {"type": "string"},
+      "counts": {"type": "object", "description": "rows per group", "additionalProperties": {"type": "integer"}},
+      "groups": {
+        "type": "object",
+        "description": "group name -> column -> mean",
+        "additionalProperties": {"type": "object", "additionalProperties": {"type": "number"}}
+      }
+    },
+    "required": ["by", "counts", "groups"]
+  },
+  "error": {"type": "string"}
+}

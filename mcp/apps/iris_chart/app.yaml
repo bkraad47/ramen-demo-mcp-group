@@ -1,0 +1,5 @@
+# MCP App (Ramen 1.0.0c, CONTRACTS §33.1). Served as resource ui://demo/iris_chart (text/html;profile=mcp-app) and
+# attached to iris_group_means through "ui": "iris_chart" in its proto. Self-contained: inline script and styles,
+# no network, so no `csp` allowlist is declared.
+title: Iris group means
+description: Inline SVG bar chart of the per-species means that iris_group_means returns.

@@ -7,3 +7,4 @@ rails:
   output:
     flows:
       - block leaked secrets
+      - block outlier dump

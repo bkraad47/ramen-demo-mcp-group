@@ -15,3 +15,6 @@ tools:
   # 1.0.0: pre runs on the first call AND on the call that carries the user's answer (the rail then sees the
   # arguments plus "$inputResponses"), so an injected answer is stopped before the tool acts on it
   confirm_delete_note: {pre: true}
+  # 1.0.0c (CONTRACTS §33.3): post refuses a result above 50 rows or with a non-numeric cell dump (flow "block outlier
+  # dump"); the tool's own cap is IRIS_MAX_ROWS from mcp/env.yaml, so a group secret IRIS_MAX_ROWS=150 and z 0 prove the block
+  iris_outliers: {post: true}

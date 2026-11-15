@@ -1,0 +1,10 @@
+{
+  "type": "prompt",
+  "name": "iris_analysis",
+  "description": "Guide an agent through the Iris data with the three iris_* tools: describe, then outliers, then group means; every number comes from a tool result.",
+  "input": {
+    "question": {"type": "string", "description": "what the user wants to know about the Iris data"}
+  },
+  "skill": "SKILL.md",
+  "settings": "settings.json"
+}

@@ -15,6 +15,7 @@ mcp/
   guardrails.yaml + guardrails/          per-tool pre/post rails: NeMo config or your own policy.py (optional, 0.7.5)
   resources/<name>/<name>.py + .json     same shape, plus uri and mime_type
   prompts/<name>/<name>.json             + SKILL.md (agent-skills template) + settings.json
+  apps/<name>/index.html + app.yaml      MCP Apps: HTML a host renders next to a tool's result; a tool names it with "ui" (optional, 1.0.0c)
 ```
 Rules: folder name == json `name` == file stem; json `type` must match its folder; `type` ∈ {tool, resource, prompt}.
 Secrets are referenced in code as `{{$group_name.secret_var}}` and resolved by the worker at call time.
@@ -61,6 +62,34 @@ version before a token or key is handed out, and the workers refuse calls that d
 (`-32028`). The bridge writes each target as `merge` says (`deep`, `block`, `replace`, `keys`), fills in
 `${RAMEN_GROUP}`, `${RAMEN_HOST}` and the telemetry endpoint, and `ramen-mcp-bridge policy remove` reverts every write.
 Guide: [LLM configs](https://bkraad47.github.io/ramen/wiki/llm-configs/).
+
+## Iris example (1.0.0c)
+One small data set, every 1.0.0c surface (Ramen CONTRACTS §33.3):
+
+| Kind | Name | Does |
+|---|---|---|
+| resource | `iris_csv` | `ramen://demo/iris.csv`, the public-domain Iris data, 150 rows, `text/csv` |
+| tool | `iris_describe` | row count and per-column count/mean/std/min/max (pandas) |
+| tool | `iris_outliers` | `{column, z}`: rows whose \|z-score\| exceeds `z`; at most `IRIS_MAX_ROWS` rows (default 50), `total` and `truncated` say what was cut |
+| tool | `iris_group_means` | `{by: species}`: per-species means and counts; carries the `iris_chart` MCP App |
+| prompt | `iris_analysis` | SKILL.md + settings: describe → outliers → group means, "never fabricate numbers", `allowed_tools` |
+| app | `mcp/apps/iris_chart/` | `index.html` + `app.yaml`: a self-contained inline-SVG bar chart of the group means, served as `ui://demo/iris_chart`, fed over the MCP Apps `postMessage` bridge (`ui/initialize`, `ui/notifications/tool-result`); no external scripts |
+| skill | `mcp/skills/iris-analyst/` | Skills over MCP: names the three tools, quotes only what they return |
+
+- `mcp/requirements.txt` pins `pandas`; a cloud deployment with a builder bakes it into the worker image on deploy.
+- `mcp/env.yaml` sets `IRIS_MAX_ROWS: "{{$demo.IRIS_MAX_ROWS}}"`: a group secret of that name raises the tool's cap
+  (unset = 50), which re-proves the environment-secrets path on every deploy.
+- `mcp/guardrails.yaml` puts `iris_outliers` behind a post rail (`block outlier dump` in `mcp/guardrails/`): a result
+  above 50 rows, a row whose measurement cells are not numbers, or anything that is not the tool's JSON is refused as
+  `guardrail blocked: post: …`. The rail's ceiling is fixed at 50 while the tool honours `IRIS_MAX_ROWS`, so set the
+  secret to `150` and call `iris_outliers` with `z` `0.001` to see a 150-row result refused.
+- Golden cases (`mcp/tests.yaml`): describe counts 150, outliers for `sepal_width` at `z` 2.5 finds two rows, group
+  means has three species. Evals (`mcp/evals/promptfooconfig.yaml`): the same three through the deployed worker.
+- Unit tests: `tests/test_iris.py` checks the tools, the CSV and the rail without Ramen —
+  `uv run --with pandas --with pytest python -m pytest tests`.
+- SkillSpector 2.13.4 (static scan) reports the skill and the app SAFE with no findings, so there is no
+  `mcp/skillspector-baseline.yaml`; add one (`skillspector baseline <dir> -o mcp/skillspector-baseline.yaml`) if a
+  later version or an LLM-backed scan flags the app's inline script.
 
 ## Guardrails (0.7.5)
 `mcp/guardrails.yaml` opts `word_count` (pre and post) and `demo_calculator_tool` (pre) into NeMo Guardrails, with the
