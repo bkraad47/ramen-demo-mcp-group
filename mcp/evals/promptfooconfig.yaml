@@ -59,7 +59,7 @@ tests:
       - type: javascript
         value: |
           const s = typeof output === "string" ? output : JSON.stringify(output);
-          return /"count":\s*150\b/.test(s);
+          return /\\?"count\\?":\s*150\b/.test(s);  // the tool text reaches promptfoo JSON-escaped
   - description: iris_outliers on sepal_width at z 2.5 returns at most 5 rows
     vars:
       prompt: '{"tool": "iris_outliers", "args": {"column": "sepal_width", "z": 2.5}}'
@@ -67,8 +67,8 @@ tests:
       - type: javascript
         value: |
           const s = typeof output === "string" ? output : JSON.stringify(output);
-          const m = s.match(/"total":\s*(\d+)/);
-          return m !== null && Number(m[1]) <= 5 && /"truncated":\s*false/.test(s);
+          const m = s.match(/\\?"total\\?":\s*(\d+)/);
+          return m !== null && Number(m[1]) <= 5 && /\\?"truncated\\?":\s*false/.test(s);
   - description: iris_group_means has three species
     vars:
       prompt: '{"tool": "iris_group_means", "args": {"by": "species"}}'
