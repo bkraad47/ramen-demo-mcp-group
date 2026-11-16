@@ -115,16 +115,31 @@ report = _load(MCP / "tools/iris_report/iris_report.py").report
 
 def test_report_names_the_columns_the_question_asks_about():
     r = report("How does sepal width vary across the three species?")
-    assert r.startswith("The Iris data set has 150 rows in 3 species.")
-    assert "Sepal width: mean 3.06 cm, std 0.44, range 2.0 to 4.4 cm." in r
-    assert "Mean sepal width per species: setosa 3.43, versicolor 2.77, virginica 2.97." in r
-    assert "petal" not in r.lower()
+    text = r["report"]
+    assert text.startswith("The Iris data set has 150 rows across setosa, versicolor and virginica.")
+    assert "Sepal width: mean 3.06 cm, std 0.44, range 2.0 to 4.4 cm." in text
+    assert "Mean sepal width per species: setosa 3.43, versicolor 2.77, virginica 2.97." in text
+    assert "petal" not in text.lower()
+    # the numbers the prose cites travel with it, so the hallucination rail checks the text against the tool's data
+    assert r["rows"] == 150 and r["species"] == ["setosa", "versicolor", "virginica"]
+    assert r["columns"] == {"sepal_width": {"mean": 3.06, "std": 0.44, "min": 2.0, "max": 4.4}}
+    assert r["group_means"] == {"sepal_width": {"setosa": 3.43, "versicolor": 2.77, "virginica": 2.97}}
+
+
+def test_every_number_in_the_prose_is_in_the_structured_data():
+    import re
+
+    for q in ("How does sepal width vary across the three species?", "Give me a summary", "petal length by species"):
+        r = report(q)
+        data = json.dumps({k: v for k, v in r.items() if k != "report"})
+        cited = set(re.findall(r"\d+(?:\.\d+)?", r["report"]))
+        assert cited <= set(re.findall(r"\d+(?:\.\d+)?", data)), (q, cited)
 
 
 def test_report_covers_every_column_without_species_when_the_question_names_none():
     r = report("Give me a summary")
-    assert all(c in r for c in ("Sepal length", "Sepal width", "Petal length", "Petal width"))
-    assert "per species" not in r and "Petal length: mean 3.76 cm" in r
+    assert set(r["columns"]) == {"sepal_length", "sepal_width", "petal_length", "petal_width"}
+    assert "per species" not in r["report"] and "Petal length: mean 3.76 cm" in r["report"] and r["group_means"] == {}
 
 
 def test_report_rejects_empty_and_oversized_questions():
