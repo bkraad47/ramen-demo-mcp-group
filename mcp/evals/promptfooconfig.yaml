@@ -39,11 +39,11 @@ tests:
   - description: word_count counts six words on one line
     vars:
       prompt: '{"tool": "word_count", "args": {"text": "ramen is a bowl of noodles"}}'
-    assert:
-      - type: contains
-        value: '"words": 6'
-      - type: contains
-        value: '"lines": 1'
+    assert:  # the tool text reaches promptfoo JSON-escaped (\"words\": 6), so match either form
+      - type: javascript
+        value: |
+          const s = typeof output === "string" ? output : JSON.stringify(output);
+          return /\\?"words\\?":\s*6\b/.test(s) && /\\?"lines\\?":\s*1\b/.test(s);
   - description: unit_convert turns 100 celsius into 212 fahrenheit
     vars:
       prompt: '{"tool": "unit_convert", "args": {"value": 100, "from_unit": "celsius", "to_unit": "fahrenheit"}}'
