@@ -1,0 +1,11 @@
+{
+  "type": "tool",
+  "name": "iris_report",
+  "description": "Answer a free-text question about the Iris data set with a short prose report computed by pandas (no model inside the tool): the columns the question names (sepal_length, sepal_width, petal_length, petal_width; all four when it names none) get their mean, std, min and max over the 150 rows, and the per-species means when the question mentions species, groups, or a species name (setosa, versicolor, virginica). Every number in the report comes from the CSV shipped with the group. Pure and stateless. This tool is behind LLM guardrails (Ramen 1.0.0c): the question is checked by self_check_input, jailbreak_detection and a topical rail (iris, statistics) before the tool runs, and the report by a hallucination rail before it is returned; an off-topic or injected question answers `guardrail blocked: pre: …`.",
+  "callable": "report",
+  "input": {
+    "question": {"type": "string", "description": "a question about the Iris data, e.g. 'How does sepal width vary across species?'"}
+  },
+  "output": {"type": "string"},
+  "error": {"type": "string"}
+}

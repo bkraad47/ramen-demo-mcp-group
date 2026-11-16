@@ -107,3 +107,44 @@ def test_outlier_rail_blocks_non_numeric_cells_and_text_dumps(actions):
     assert _rail(actions, "iris_outliers", r) is True
     assert _rail(actions, "iris_outliers", read_csv()) is True
     assert _rail(actions, "word_count", read_csv()) is False
+
+
+# ---- iris_report (1.0.0c, CONTRACTS §36.4): pandas prose, no model inside the tool ------------------------------------
+report = _load(MCP / "tools/iris_report/iris_report.py").report
+
+
+def test_report_names_the_columns_the_question_asks_about():
+    r = report("How does sepal width vary across the three species?")
+    assert r.startswith("The Iris data set has 150 rows in 3 species.")
+    assert "Sepal width: mean 3.06 cm, std 0.44, range 2.0 to 4.4 cm." in r
+    assert "Mean sepal width per species: setosa 3.43, versicolor 2.77, virginica 2.97." in r
+    assert "petal" not in r.lower()
+
+
+def test_report_covers_every_column_without_species_when_the_question_names_none():
+    r = report("Give me a summary")
+    assert all(c in r for c in ("Sepal length", "Sepal width", "Petal length", "Petal width"))
+    assert "per species" not in r and "Petal length: mean 3.76 cm" in r
+
+
+def test_report_rejects_empty_and_oversized_questions():
+    with pytest.raises(ValueError):
+        report("   ")
+    with pytest.raises(ValueError):
+        report("x" * 501)
+
+
+def test_guardrails_yaml_names_the_1_0_0c_rails():
+    """The shapes the worker parses (§36.1): a list of names, a {name: options} item, rails at the right stage."""
+    import yaml
+
+    doc = yaml.safe_load((MCP / "guardrails.yaml").read_text())
+    assert doc["tools"]["iris_outliers"] == {"post": ["self_check_output"]}
+    rep = doc["tools"]["iris_report"]
+    assert rep["pre"][:2] == ["self_check_input", "jailbreak_detection"]
+    assert rep["pre"][2] == {"topical": {"topics": ["iris", "statistics"]}}
+    assert rep["post"] == ["hallucination"]
+    cfg = yaml.safe_load((MCP / "guardrails/config.yml").read_text())
+    assert cfg["models"] == [], "the worker fills models: from the group's provider; no key lives in the repo"
+    prompts = {p["task"] for p in yaml.safe_load((MCP / "guardrails/prompts.yml").read_text())["prompts"]}
+    assert prompts == {"self_check_input", "self_check_output"}

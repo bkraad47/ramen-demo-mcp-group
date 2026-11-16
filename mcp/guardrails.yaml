@@ -1,14 +1,18 @@
-# Guardrails (Ramen 0.7.5, CONTRACTS §21.2). Opt-in per tool; the worker runs the rails inside the call:
+# Guardrails (Ramen 0.7.5, CONTRACTS §21.2; LLM rails 1.0.0c, §36.1). Opt-in per tool; the worker runs the rails inside
+# the call:
 #   pre  = after argument validation, before the tool runs (the arguments, as JSON; secrets stay as {{$group.VAR}})
 #   post = after the output-schema check, before the result leaves (the result text or structuredContent)
 # engine: nemo (NVIDIA NeMo Guardrails, config dir below) | policy (your own mcp/guardrails/policy.py) | none
 # fail: closed (a hook error or timeout blocks the call) | open (the call proceeds, the worker logs guardrail_error)
-# These rails are deterministic: no model, no API key, no cost. Add `models:` to mcp/guardrails/config.yml and the
-# matching key to mcp/env.yaml to run LLM-backed rails such as NeMo's self-check flows.
+# `pre: true` / `post: true` run the group's own deterministic flows in mcp/guardrails/ (no model, no cost). A list
+# names LLM rails on top of them: self_check_input, jailbreak_detection, topical {topics: [...]} at pre;
+# self_check_output, hallucination, fact_checking at post; sensitive_data at either. The model is the group's (or the
+# org's) LLM provider on the console — never a key in this repo — and a deploy with an LLM rail and no provider fails
+# with "rail <name> on <tool> needs an LLM".
 engine: nemo
 config: mcp/guardrails
 fail: closed
-timeout_s: 10
+timeout_s: 30    # an LLM rail is a model round trip (hallucination: three); 10 s is enough for the static flows alone
 tools:
   word_count: {pre: true, post: true}
   demo_calculator_tool: {pre: true}
@@ -16,5 +20,10 @@ tools:
   # arguments plus "$inputResponses"), so an injected answer is stopped before the tool acts on it
   confirm_delete_note: {pre: true}
   # 1.0.0c (CONTRACTS §33.3): post refuses a result above 50 rows or with a non-numeric cell dump (flow "block outlier
-  # dump"); the tool's own cap is IRIS_MAX_ROWS from mcp/env.yaml, so a group secret IRIS_MAX_ROWS=150 and z 0 prove the block
-  iris_outliers: {post: true}
+  # dump"); the tool's own cap is IRIS_MAX_ROWS from mcp/env.yaml, so a group secret IRIS_MAX_ROWS=150 and z 0 prove the
+  # block. §36.4: self_check_output asks the model whether the rows leak anything (the static flow still runs first).
+  iris_outliers: {post: [self_check_output]}
+  # §36.4: the free-text question is checked by three LLM rails before pandas runs, the prose by one after
+  iris_report:
+    pre: [self_check_input, jailbreak_detection, {topical: {topics: [iris, statistics]}}]
+    post: [hallucination]
