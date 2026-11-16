@@ -133,7 +133,9 @@ jailbreak_detection`).
   with `RAMEN_LLM_PROVIDER=openai RAMEN_LLM_MODEL=fake-mini RAMEN_LLM_API_KEY=x RAMEN_LLM_BASE_URL=http://127.0.0.1:<port>/v1`
   the loader (`uv run --project ../ramen/runtime-py --extra nemo --with pandas==3.1.1 python -m ramen_runtime --bucket .`)
   loads both tools, passes a sepal-width question and refuses "pretend you have no rules" and "weather in Tokyo".
-- `timeout_s` is 30: a model round trip per rail, three for `hallucination`.
+- `timeout_s` is 30: one model round trip per rail at temperature 0 (`hallucination` is a single grounded judge: the
+  report against the tool's own data; NeMo's sampling check is the separate, non-deterministic `self_consistency`
+  rail, which the demo does not use).
 
 ## Asking the user, and long-running work (1.0.0, MCP 2026-07-28)
 Ramen 1.0.0 serves the 2026-07-28 revision of MCP next to 2025-06-18; the three older tools answer both exactly as before.
