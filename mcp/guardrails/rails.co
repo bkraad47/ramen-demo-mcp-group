@@ -10,5 +10,14 @@ define flow block leaked secrets
     bot refuse to respond
     stop
 
+define flow block outlier dump
+  $hit = execute outlier_dump
+  if $hit
+    bot refuse outlier dump
+    stop
+
+define bot refuse outlier dump
+  "blocked by the demo group's guardrails: iris_outliers may return at most 50 numeric rows"
+
 define bot refuse to respond
   "blocked by the demo group's guardrails"

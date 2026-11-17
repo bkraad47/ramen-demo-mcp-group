@@ -1,0 +1,11 @@
+{
+  "type": "resource",
+  "name": "iris_csv",
+  "uri": "ramen://demo/iris.csv",
+  "description": "The public-domain Iris data set (Fisher 1936, Anderson's measurements): 150 rows, header sepal_length,sepal_width,petal_length,petal_width,species; 50 rows each of setosa, versicolor and virginica, measurements in cm. The same file the iris_* tools read, so a number a tool reports can be checked against it.",
+  "mime_type": "text/csv",
+  "callable": "read_csv",
+  "input": {},
+  "output": {"type": "string"},
+  "error": {"type": "string"}
+}

@@ -1,0 +1,11 @@
+{
+  "type": "tool",
+  "name": "confirm_delete_note",
+  "description": "Delete one note from the demo note list, after asking the user to confirm. The first call returns an input request (a yes/no form, MCP 2026-07-28 elicitation) instead of a result; the client shows it to the user and calls again with the answer. Confirming deletes the note and returns what is left; declining, cancelling or answering no returns a normal result saying nothing was deleted, never an error. The list is a fixed in-memory demo (groceries, ideas, todo) rebuilt on every call, so nothing is really lost; a name that is not on the list returns a normal result saying so, without asking. Needs a client that speaks MCP 2026-07-28 and supports elicitation; older clients get a tool error that says so.",
+  "callable": "confirm_delete",
+  "input": {
+    "note": {"type": "string", "description": "name of the note to delete: groceries, ideas or todo"}
+  },
+  "output": {"type": "string", "description": "what was deleted and what remains, or that nothing was deleted"},
+  "error": {"type": "string"}
+}

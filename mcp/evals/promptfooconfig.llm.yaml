@@ -1,0 +1,38 @@
+# LLM-graded eval for the demo group (Ramen 1.0.0c, CONTRACTS §36.4). promptfoo cannot skip a single test on a missing
+# env var, so the one `llm-rubric` case lives in this second config and runs only when a provider key is present:
+#   OPENAI_API_KEY=... promptfoo eval -c mcp/evals/promptfooconfig.llm.yaml --no-cache
+# Ramen runs mcp/evals/promptfooconfig.yaml on every deploy (no key needed) and this file when the group's or the org's
+# LLM provider is set (its key is injected as OPENAI_API_KEY / ANTHROPIC_API_KEY; the grader below uses OpenAI).
+description: ramen-demo-mcp-group — iris_report graded by a model (needs OPENAI_API_KEY)
+
+providers:
+  - id: mcp
+    label: ramen-worker
+    config:
+      enabled: true
+      server:
+        url: "{{env.RAMEN_MCP_URL}}"
+        headers:
+          Authorization: "Bearer {{env.RAMEN_MCP_KEY}}"
+          ramen-group: "{{env.RAMEN_GROUP}}"
+          ramen-zone: "{{env.RAMEN_ZONE}}"
+
+prompts:
+  - "{{prompt}}"
+
+defaultTest:
+  options:
+    provider: openai:gpt-4o-mini   # the grader for llm-rubric; reads OPENAI_API_KEY
+
+tests:
+  - description: iris_report answers a sepal-width question with real per-species figures and is not blocked
+    vars:
+      prompt: '{"tool": "iris_report", "args": {"question": "How does sepal width vary across the three species?"}}'
+    assert:
+      - type: not-contains
+        value: "guardrail blocked"
+      - type: llm-rubric
+        value: >
+          The output is a short factual report on the Iris data set that states a mean sepal width close to 3.06 cm
+          overall and gives a per-species mean for setosa, versicolor and virginica (setosa the largest, about 3.43).
+          It must not refuse, apologise, or mention anything unrelated to the Iris data.

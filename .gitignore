@@ -1,0 +1,4 @@
+__pycache__/
+.pytest_cache/
+# written by the Ramen runtime when it installs mcp/requirements.txt locally
+mcp/.ramen_requirements.sha256

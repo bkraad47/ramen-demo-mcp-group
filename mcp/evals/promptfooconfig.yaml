@@ -1,0 +1,77 @@
+# Evals for the demo group (Ramen 1.0.0c, CONTRACTS §29.2). promptfoo-native: Ramen runs
+#   promptfoo eval -c mcp/evals/promptfooconfig.yaml -o results.json --no-cache --no-progress-bar --no-table
+# against the canary after the golden cases of each zone, and records passed/failed/errors on the deploy job
+# (a warning by default; "Gate deploys on evals" on the group page makes a failure stop the deploy).
+#
+# Env Ramen injects into the run (nothing else is on the pod). Ramen fills `{{env.RAMEN_*}}` in below before the run
+# (promptfoo renders env refs in prompts/vars but not in a provider's server.url/headers); provider keys stay env vars:
+#   RAMEN_MCP_URL   the canary's Streamable HTTP endpoint (in-cluster)      RAMEN_GROUP / RAMEN_ENV / RAMEN_ZONE
+#   RAMEN_MCP_KEY   the group key the golden cases use (bearer)
+#   ANTHROPIC_API_KEY, OPENAI_API_KEY (+ OPENAI_BASE_URL), AZURE_API_KEY + AZURE_API_HOST — only the providers a
+#   super admin saved on Config → LLM providers. The three tests below call the tools directly through the `mcp`
+#   provider and need no LLM key; an LLM-graded assertion (`llm-rubric`, `model-graded-closedqa`) or an LLM provider
+#   with `config.mcp` tools needs one of those keys on Config → LLM providers first.
+description: ramen-demo-mcp-group — the demo tools answer through the deployed worker
+
+providers:
+  - id: mcp
+    label: ramen-worker
+    config:
+      enabled: true
+      server:
+        url: "{{env.RAMEN_MCP_URL}}"
+        headers:
+          Authorization: "Bearer {{env.RAMEN_MCP_KEY}}"
+          ramen-group: "{{env.RAMEN_GROUP}}"
+          ramen-zone: "{{env.RAMEN_ZONE}}"
+
+# The mcp provider takes the prompt as a JSON string: {"tool": "<name>", "args": {...}}.
+prompts:
+  - "{{prompt}}"
+
+tests:
+  - description: calculator adds two numbers
+    vars:
+      prompt: '{"tool": "demo_calculator_tool", "args": {"var1": 2, "var2": 3, "func": "add"}}'
+    assert:
+      - type: contains
+        value: "5"
+  - description: word_count counts six words on one line
+    vars:
+      prompt: '{"tool": "word_count", "args": {"text": "ramen is a bowl of noodles"}}'
+    assert:  # the tool text reaches promptfoo JSON-escaped (\"words\": 6), so match either form
+      - type: javascript
+        value: |
+          const s = typeof output === "string" ? output : JSON.stringify(output);
+          return /\\?"words\\?":\s*6\b/.test(s) && /\\?"lines\\?":\s*1\b/.test(s);
+  - description: unit_convert turns 100 celsius into 212 fahrenheit
+    vars:
+      prompt: '{"tool": "unit_convert", "args": {"value": 100, "from_unit": "celsius", "to_unit": "fahrenheit"}}'
+    assert:
+      - type: contains
+        value: "212"
+  # 1.0.0c Iris example (CONTRACTS §33.3). The javascript asserts read the result text with a regex so they hold
+  # whether the provider hands back the JSON itself or a string that embeds it.
+  - description: iris_describe counts 150 rows
+    vars:
+      prompt: '{"tool": "iris_describe", "args": {}}'
+    assert:
+      - type: javascript
+        value: |
+          const s = typeof output === "string" ? output : JSON.stringify(output);
+          return /\\?"count\\?":\s*150\b/.test(s);  // the tool text reaches promptfoo JSON-escaped
+  - description: iris_outliers on sepal_width at z 2.5 returns at most 5 rows
+    vars:
+      prompt: '{"tool": "iris_outliers", "args": {"column": "sepal_width", "z": 2.5}}'
+    assert:
+      - type: javascript
+        value: |
+          const s = typeof output === "string" ? output : JSON.stringify(output);
+          const m = s.match(/\\?"total\\?":\s*(\d+)/);
+          return m !== null && Number(m[1]) <= 5 && /\\?"truncated\\?":\s*false/.test(s);
+  - description: iris_group_means has three species
+    vars:
+      prompt: '{"tool": "iris_group_means", "args": {"by": "species"}}'
+    assert:
+      - type: contains-all
+        value: ["setosa", "versicolor", "virginica"]

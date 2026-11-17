@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iris group means</title>
+<style>
+  :root { --bg: #F4F1EC; --ink: #1F1B18; --muted: #6B625B; --grid: #D9D2C8; --c1: #F26B3A; --c2: #3A7CA5; --c3: #5B9A5B; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1C1917; --ink: #F4F1EC; --muted: #A8A09A; --grid: #3A342F; } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  svg { width: 100%; height: auto; display: block; }
+  .legend span { display: inline-block; margin-right: 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<h1>Iris group means</h1>
+<p id="status">Waiting for an iris_group_means result…</p>
+<div id="legend" class="legend"></div>
+<div id="chart"></div>
+<script>
+(function () {
+  var COLS = ["sepal_length", "sepal_width", "petal_length", "petal_width"];
+  var COLORS = ["var(--c1)", "var(--c2)", "var(--c3)"];
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); };
+
+  function render(result) {
+    var groups = result && result.groups;
+    if (!groups || typeof groups !== "object") { document.getElementById("status").textContent = "No groups in the result."; return; }
+    var names = Object.keys(groups).sort(), n = names.length;
+    var max = 0;
+    names.forEach(function (g) { COLS.forEach(function (c) { var v = Number(groups[g][c]); if (isFinite(v) && v > max) max = v; }); });
+    var W = 600, H = 260, L = 36, B = 40, T = 10, pw = W - L - 10, ph = H - T - B;
+    var band = pw / COLS.length, bar = Math.min(28, (band - 16) / Math.max(n, 1));
+    var y = function (v) { return T + ph - (max ? v / max * ph : 0); };
+    var out = ['<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Mean of each Iris column per group">'];
+    for (var t = 0; t <= 4; t++) {
+      var v = max * t / 4, yy = y(v);
+      out.push('<line x1="' + L + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="var(--grid)"/>');
+      out.push('<text x="' + (L - 6) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)">' + v.toFixed(1) + '</text>');
+    }
+    COLS.forEach(function (c, i) {
+      var x0 = L + i * band + (band - bar * n) / 2;
+      names.forEach(function (g, j) {
+        var v = Number(groups[g][c]); if (!isFinite(v)) return;
+        var x = x0 + j * bar;
+        out.push('<rect x="' + x + '" y="' + y(v) + '" width="' + (bar - 2) + '" height="' + (T + ph - y(v)) + '" fill="' + COLORS[j % 3] + '" rx="2"><title>' + esc(g) + " " + esc(c) + ": " + v + '</title></rect>');
+      });
+      out.push('<text x="' + (L + i * band + band / 2) + '" y="' + (H - B + 18) + '" text-anchor="middle" font-size="12" fill="var(--ink)">' + esc(c.replace("_", " ")) + '</text>');
+    });
+    out.push('<text x="' + (L + pw / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--muted)">mean, cm</text></svg>');
+    document.getElementById("chart").innerHTML = out.join("");
+    document.getElementById("legend").innerHTML = names.map(function (g, j) {
+      var cnt = result.counts && result.counts[g];
+      return '<span><i style="background:' + COLORS[j % 3] + '"></i>' + esc(g) + (cnt ? " (" + esc(cnt) + ")" : "") + "</span>";
+    }).join("");
+    document.getElementById("status").textContent = "Grouped by " + esc(result.by || "species") + ", " + n + " groups.";
+  }
+
+  function fromToolResult(r) {
+    if (!r) return null;
+    if (r.structuredContent && r.structuredContent.groups) return r.structuredContent;
+    if (r.groups) return r;
+    var txt = (r.content || []).filter(function (b) { return b && b.type === "text"; }).map(function (b) { return b.text; }).join("");
+    try { return JSON.parse(txt); } catch (e) { return null; }
+  }
+
+  // MCP Apps host bridge: JSON-RPC over postMessage. The host answers ui/initialize, then sends
+  // ui/notifications/tool-input and ui/notifications/tool-result; a bare {structuredContent} or {groups} also works
+  // (the console's preview and tests).
+  var host = window.parent !== window ? window.parent : null;
+  window.addEventListener("message", function (ev) {
+    var m = ev.data; if (!m || typeof m !== "object") return;
+    if (m.id === 1 && m.result && host) { host.postMessage({jsonrpc: "2.0", method: "ui/notifications/initialized"}, "*"); return; }
+    if (m.method === "ui/notifications/tool-result") { render(fromToolResult(m.params)); return; }
+    if (m.method === "ui/notifications/tool-input") { document.getElementById("status").textContent = "Computing group means…"; return; }
+    if (!m.method && (m.structuredContent || m.groups)) render(fromToolResult(m));
+  });
+  if (host) host.postMessage({jsonrpc: "2.0", id: 1, method: "ui/initialize", params: {appInfo: {name: "iris_chart", version: "1.0.0"}, appCapabilities: {}}}, "*");
+})();
+</script>
+</body>
+</html>

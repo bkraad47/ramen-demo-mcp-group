@@ -1,0 +1,5 @@
+{
+  "allowed_tools": ["iris_describe", "iris_outliers", "iris_group_means"],
+  "max_tool_calls": 6,
+  "boundaries": ["never fabricate numbers: every figure comes from a tool result", "Iris data only; no other data set", "do not ask for more than 50 outlier rows"]
+}

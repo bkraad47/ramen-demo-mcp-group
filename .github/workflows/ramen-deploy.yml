@@ -76,7 +76,7 @@ jobs:
             status=unknown
             if [ "$code" = 200 ]; then status=$(jq -r '.status // "unknown"' "$OUT" 2>/dev/null || echo unknown); fi
             if [ "$code" = 404 ]; then
-              echo "::error::job $JOB is gone: jobs live in the console's memory, so it restarted. See the group page."
+              echo "::error::job $JOB is gone: the console keeps the last 50 jobs per environment, so newer ones replaced it. See the group page."
               exit 1
             fi
             case "$status" in

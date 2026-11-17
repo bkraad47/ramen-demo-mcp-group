@@ -1,0 +1,30 @@
+{
+  "type": "tool",
+  "name": "iris_describe",
+  "description": "Describe the Iris data set (resource ramen://demo/iris.csv): the row count and, for each of the four numeric columns (sepal_length, sepal_width, petal_length, petal_width), count, mean, std (sample standard deviation), min and max, rounded to 4 decimals. Computed with pandas from the CSV shipped with the group; pure, stateless, no arguments, no side effects. Use it first, before iris_outliers or iris_group_means, to get the real numbers instead of estimating them.",
+  "callable": "describe",
+  "input": {},
+  "output": {
+    "type": "object",
+    "properties": {
+      "count": {"type": "integer", "description": "number of rows, 150"},
+      "columns": {
+        "type": "object",
+        "description": "one entry per numeric column",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "count": {"type": "integer"},
+            "mean": {"type": "number"},
+            "std": {"type": "number"},
+            "min": {"type": "number"},
+            "max": {"type": "number"}
+          },
+          "required": ["count", "mean", "std", "min", "max"]
+        }
+      }
+    },
+    "required": ["count", "columns"]
+  },
+  "error": {"type": "string"}
+}

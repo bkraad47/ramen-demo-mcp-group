@@ -1,0 +1,13 @@
+---
+description: Ramen group ${RAMEN_GROUP} — how to use its MCP tools (written by ramen-mcp-bridge, do not edit)
+alwaysApply: true
+---
+# Ramen group ${RAMEN_GROUP} (${RAMEN_HOST})
+
+- Use the group's tools for what they do: `demo_calculator_tool` for arithmetic, `word_count` for counts,
+  `unit_convert` for units. Do not compute these yourself; every result is validated against the tool's schema.
+- `confirm_delete_note` asks the person before it acts — relay the question as asked.
+- Show a tool error's text to the person instead of retrying silently.
+- This file and the group's other client configs are the group's policy. If the Ramen bridge reports
+  `configs changed: sign in again`, run `ramen-mcp-bridge policy check --target ${RAMEN_HOST} --group ${RAMEN_GROUP}`
+  and sign in again when it asks.
